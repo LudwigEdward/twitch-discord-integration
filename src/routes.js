@@ -1,16 +1,30 @@
 const express = require('express');
 const router = express.Router();
-const createVoiceChannel = require('./Discord/Commands/createVoiceChannel')
-const chatListener = require('./Twitch/Bot/Listenner/chatListenner')
+// const createVoiceChannel = require('./bot/Discord/Commands/createVoiceChannel')
+const {chatConnection,chat} = require('./bot/Twitch/Bot/Connections/chatConnection')
+const {selectedUsersStore,selectedUsersIndex} = require('./app/controller/SelectedUsersController')
 
 
-router.get('/teste1', (req, res) => {
-  res.send('teste1')
-  createVoiceChannel();
+router.post('/setSelectedUsers', async (req, res,next) => {
+  try{
+    await chatConnection(req.body.channel);
+    chat.on('*', async (msg) => {
+      await selectedUsersStore({name:msg.username},res);
+    })
+  }catch(err){
+    return Promise.reject('Oops!').catch(err => {
+      throw new Error(err);
+    });
+  }
 })
-router.get('/teste2', (req, res) => {
-  res.send('teste2')
-  chatListener();
+
+router.post('/stopListenning', async (req,res) =>{
+  await chat.removeAllListeners()
+  res.json({status:"Contagem de Usuários Finalizada"})
+})
+
+router.get('/getAllUsers', async (req, res) => {
+  await selectedUsersIndex(req, res);
 })
   
 module.exports = router;
